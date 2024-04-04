@@ -218,6 +218,8 @@ func doDiscordReq(ctx context.Context, path string, method string, body io.ReadC
 		return nil, err
 	}
 
+	header.Set("User-Agent", "DiscordBot (https://easypoll.bot/, 1.0)")
+
 	discordReq.Header = header
 	startTime := time.Now()
 	discordResp, err := client.Do(discordReq)
