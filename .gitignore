@@ -1,7 +1,7 @@
 .idea/
 nirn-proxy.*
 nirn-proxy
+!.helm/*
 .env
-*.txt
 *.log
 k6_tests/node_modules

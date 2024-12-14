@@ -1,0 +1,115 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: {{ include "nirn-proxy.fullname" . }}
+  labels:
+    {{- include "nirn-proxy.labels" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "nirn-proxy.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "nirn-proxy.labels" . | nindent 8 }}
+        {{- with .Values.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+            {{ if .Values.nirnProxy.logLevel }}
+            - name: LOG_LEVEL
+              value: {{ .Values.nirnProxy.logLevel }}
+            {{ end }}
+            - name: PORT
+              value: {{ .Values.service.port | quote }}
+            - name: METRICS_PORT
+              value: {{ .Values.service.metricsPort | quote }}
+            {{ if .Values.nirnProxy.enableMetrics }}
+            - name: ENABLE_METRICS
+              value: {{ .Values.nirnProxy.enableMetrics | quote }}
+            {{ end }}
+            {{ if .Values.nirnProxy.enablePprof }}
+            - name: ENABLE_PPROF
+              value: {{ .Values.nirnProxy.enablePprof | quote }}
+            {{ end }}
+            {{ if .Values.nirnProxy.bufferSize }}
+            - name: BUFFER_SIZE
+              value: {{ .Values.nirnProxy.bufferSize | quote }}
+            {{ end }}
+            {{ if .Values.nirnProxy.outboundIp }}
+            - name: OUTBOUND_IP
+              value: {{ .Values.nirnProxy.outboundIp }}
+            {{ end }}
+            - name: BIND_IP
+              value: '0.0.0.0'
+            {{ if .Values.nirnProxy.requestTimeout }}
+            - name: REQUEST_TIMEOUT
+              value: {{ .Values.nirnProxy.requestTimeout | quote }}
+            {{ end }}
+            - name: CLUSTER_PORT
+              value: {{ .Values.service.clusterPort | quote }}
+            {{ if .Values.nirnProxy.clusterMembers }}
+            - name: CLUSTER_MEMBERS
+              value: {{ .Values.nirnProxy.clusterMembers }}
+            {{ end }}
+            - name: CLUSTER_DNS
+              value: {{ printf "%s-headless" (include "nirn-proxy.fullname" .) }}
+            - name: MAX_BEARER_COUNT
+              value: {{ .Values.nirnProxy.maxBearerCount | quote }}
+            {{ if .Values.nirnProxy.disableHttp2 }}
+            - name: DISABLE_HTTP_2
+              value: {{ .Values.nirnProxy.disableHttp2 | quote }}
+            {{ end }}
+            {{ if .Values.nirnProxy.botRateLimitOverrides }}
+            - name: BOT_RATELIMIT_OVERRIDES
+              value: {{ .Values.nirnProxy.botRateLimitOverrides }}
+            {{ end }}
+            {{ if .Values.nirnProxy.disableGlobalRateLimitDetection }}
+            - name: DISABLE_GLOBAL_RATELIMIT_DETECTION
+              value: {{ .Values.nirnProxy.disableGlobalRateLimitDetection | quote }}
+            {{ end }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.service.port }}
+              protocol: TCP
+            - name: metrics
+              containerPort: {{ .Values.service.metricsPort }}
+              protocol: TCP
+            - name: cluster
+              containerPort: {{ .Values.service.clusterPort }}
+              protocol: TCP
+          livenessProbe:
+            {{- toYaml .Values.livenessProbe | nindent 12 }}
+          readinessProbe:
+            {{- toYaml .Values.readinessProbe | nindent 12 }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
